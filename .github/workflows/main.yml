@@ -1,0 +1,25 @@
+on:
+  schedule:
+    - cron:  '30 0 * * *'
+  workflow_dispatch:
+
+name: forwarding
+jobs:
+  forwarding:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Runing
+        run: |
+          wget -N https://github.com/felixonmars/dnsmasq-china-list/raw/master/accelerated-domains.china.conf
+          cat accelerated-domains.china.conf | grep -v '^#server' | sed -e 's|/| |g' -e 's|^server= ||' | sed 's/114.114.114.114/94.140.14.14,194.242.2.3,176.9.93.198/g' | sed -e 's/$/\r/' >forwarding-rules.txt
+          rm -rf accelerated-domains.china.conf
+      - name: Commit
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git add .
+          git commit --allow-empty -m "$(git log -1 --pretty=%s)"
+          git push
